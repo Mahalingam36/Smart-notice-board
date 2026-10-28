@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Notice Board · LoRaWAN Image Transmitter</title>
+<meta name="description" content="Send images over BLE and LoRaWAN to a Smart Notice Board display.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======================= HEADER ======================= -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+          <circle cx="24" cy="34" r="3.4" fill="currentColor"/>
+          <path d="M15 27a12.7 12.7 0 0 1 18 0" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M8.5 20.3a22 22 0 0 1 31 0" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <path d="M2 13.7a31 31 0 0 1 44 0" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.3"/>
+        </svg>
+      </span>
+      <div class="brand-text">
+        <h1>Smart Notice Board</h1>
+        <p>Image transmission over BLE&nbsp;&rarr;&nbsp;LoRaWAN</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="conn-indicator" id="connIndicator" data-state="disconnected">
+        <span class="conn-dot" aria-hidden="true"></span>
+        <span class="conn-label" id="connLabel">Disconnected</span>
+      </div>
+      <button class="icon-btn" id="themeToggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="settingsToggle" type="button" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ======================= MAIN ======================= -->
+<main class="app-main">
+
+  <!-- ---- Connection panel ---- -->
+  <section class="panel connection-panel" aria-labelledby="connHeading">
+    <div class="panel-head">
+      <h2 id="connHeading">ESP32 Connection</h2>
+      <span class="panel-sub">Web Bluetooth (BLE)</span>
+    </div>
+    <div class="conn-body">
+      <div class="conn-info">
+        <div class="conn-field">
+          <span class="field-label">Device</span>
+          <span class="field-value" id="deviceName">No device selected</span>
+        </div>
+        <div class="conn-field">
+          <span class="field-label">Service</span>
+          <span class="field-value" id="serviceStatus">—</span>
+        </div>
+      </div>
+      <div class="conn-actions">
+        <button class="btn btn-primary" id="connectBtn" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="m6.5 6.5 11 11L12 23V1l5.5 5.5-11 11"/></svg>
+          Connect ESP32
+        </button>
+        <button class="btn btn-ghost" id="disconnectBtn" type="button" disabled>Disconnect</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <!-- ---- Upload panel ---- -->
+    <section class="panel upload-panel" aria-labelledby="uploadHeading">
+      <div class="panel-head">
+        <h2 id="uploadHeading">Image Source</h2>
+        <span class="panel-sub">JPG · JPEG · PNG · BMP</span>
+      </div>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Drag and drop image, or choose a file">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" class="dropzone-icon">
+          <path d="M12 15V4M12 4 8 8m4-4 4 4"/>
+          <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+        </svg>
+        <p class="dropzone-text">Drag &amp; drop an image here</p>
+        <p class="dropzone-sub">or</p>
+        <button class="btn btn-primary" id="chooseImageBtn" type="button">Choose Image</button>
+        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.bmp,image/jpeg,image/png,image/bmp" hidden>
+      </div>
+
+      <div class="image-info" id="imageInfo" hidden>
+        <div class="preview-wrap">
+          <img id="imagePreview" alt="Selected image preview">
+          <img id="processedPreview" alt="Processed image preview" hidden>
+        </div>
+        <dl class="info-list">
+          <div><dt>Name</dt><dd id="infoName">—</dd></div>
+          <div><dt>Original size</dt><dd id="infoSize">—</dd></div>
+          <div><dt>Resolution</dt><dd id="infoRes">—</dd></div>
+          <div><dt>Processed size</dt><dd id="infoProcessedSize">—</dd></div>
+          <div><dt>Packets</dt><dd id="infoPackets">—</dd></div>
+        </dl>
+        <div class="image-actions">
+          <button class="btn btn-secondary" id="downloadProcessedBtn" type="button" disabled>Download Processed Image</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- Transmission panel ---- -->
+    <section class="panel tx-panel" aria-labelledby="txHeading">
+      <div class="panel-head">
+        <h2 id="txHeading">Transmission</h2>
+        <span class="panel-sub" id="txSubStatus">Idle</span>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="sendBtn" type="button" disabled>Send to Notice Board</button>
+
+      <div class="progress-block">
+        <div class="progress-meta">
+          <span id="progressPacketLabel">Packet 0 / 0</span>
+          <span id="progressEta">ETA —</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-percent" id="progressPercent">0%</div>
+      </div>
+
+      <!-- Signature element: live packet-stream grid -->
+      <div class="packet-stream" id="packetStream" aria-hidden="true"></div>
+
+      <div class="tx-complete" id="txComplete" hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 13 4 4L19 7"/></svg>
+        Transmission Completed Successfully
+      </div>
+    </section>
+  </div>
+
+  <!-- ---- Console panel ---- -->
+  <section class="panel console-panel" aria-labelledby="consoleHeading">
+    <div class="panel-head">
+      <h2 id="consoleHeading">Status Console</h2>
+      <button class="btn btn-ghost btn-sm" id="clearConsoleBtn" type="button">Clear</button>
+    </div>
+    <div class="console" id="console" role="log" aria-live="polite"></div>
+  </section>
+
+</main>
+
+<!-- ======================= SETTINGS DRAWER ======================= -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="settingsDrawer" aria-labelledby="settingsHeading">
+  <div class="drawer-head">
+    <h2 id="settingsHeading">Settings</h2>
+    <button class="icon-btn" id="closeDrawerBtn" type="button" aria-label="Close settings">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+
+  <form class="drawer-body" id="settingsForm">
+    <fieldset>
+      <legend>Display Resolution</legend>
+      <label class="field">
+        <span>Width (px)</span>
+        <input type="number" id="setWidth" min="16" max="1024" step="1">
+      </label>
+      <label class="field">
+        <span>Height (px)</span>
+        <input type="number" id="setHeight" min="16" max="1024" step="1">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Compression</legend>
+      <label class="field">
+        <span>Quality (<output id="qualityOut">80</output>%)</span>
+        <input type="range" id="setQuality" min="10" max="100" step="1">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Packetization</legend>
+      <label class="field">
+        <span>Packet size (bytes)</span>
+        <input type="number" id="setPacketSize" min="20" max="512" step="1">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Transmission</legend>
+      <label class="field">
+        <span>Inter-packet delay (ms)</span>
+        <input type="number" id="setDelay" min="0" max="2000" step="5">
+      </label>
+      <label class="field">
+        <span>Max retry count</span>
+        <input type="number" id="setRetries" min="0" max="10" step="1">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Preferences</legend>
+      <label class="field field-row">
+        <span>Dark mode</span>
+        <input type="checkbox" id="setDarkMode">
+      </label>
+      <label class="field field-row">
+        <span>Auto-reconnect last device</span>
+        <input type="checkbox" id="setAutoReconnect">
+      </label>
+    </fieldset>
+
+    <div class="drawer-actions">
+      <button type="button" class="btn btn-ghost" id="resetSettingsBtn">Reset to Defaults</button>
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+  </form>
+</aside>
+
+<!-- ======================= TOAST NOTIFICATIONS ======================= -->
+<div class="toast-stack" id="toastStack" aria-live="assertive"></div>
+
+<script src="utils.js"></script>
+<script src="settings.js"></script>
+<script src="imageProcessor.js"></script>
+<script src="packetizer.js"></script>
+<script src="bluetooth.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
